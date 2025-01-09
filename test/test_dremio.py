@@ -2,9 +2,10 @@
 from __future__ import unicode_literals
 
 import logging
+from typing import Optional
+
 import pytest
-from sqlalchemy import MetaData
-from sqlalchemy.testing.schema import Table
+from sqlalchemy import text, inspect
 
 LOGGER = logging.getLogger(__name__)
 
@@ -21,37 +22,52 @@ def engine():
     return engine
 
 
+def __execute(statement: str):
+    engine = conftest.get_engine()
+    with engine.connect() as conn:
+        return conn.execute(text(statement))
+
+
+def __has_table(table: str, schema: Optional[str] = None):
+    engine = conftest.get_engine()
+    with engine.connect() as conn:
+        return inspect(engine).has_table(table, schema=schema)
+
+
 def test_connect_args():
     """
     Tests connect string
     """
     engine = conftest.get_engine()
     try:
-        results = engine.execute('select version from sys.version').fetchone()
+        results = __execute('select version from sys.version').fetchone()
         assert results is not None
     finally:
         engine.dispose()
 
 
 def test_simple_sql():
-    result = conftest.get_engine().execute('show databases')
+    result = __execute('show databases')
     rows = [row for row in result]
     assert len(rows) >= 0, 'show database results'
 
 
 def test_row_count(engine):
-    rows = conftest.get_engine().execute('SELECT * FROM $scratch.sqlalchemy_tests').fetchall()
+    rows = __execute('SELECT * FROM $scratch.sqlalchemy_tests').fetchall()
     assert len(rows) is 2
 
-def test_has_table_True():
-    assert conftest.get_engine().has_table("version", schema = "sys")
 
-def test_has_table_True2():
-    assert conftest.get_engine().has_table("version")
+def test_has_table_true():
+    assert __has_table("version", schema="sys")
 
-def test_has_table_False():
-    assert not conftest.get_engine().has_table("does_not_exist", schema = "sys")
 
-def test_has_table_False2():
-    assert not conftest.get_engine().has_table("does_not_exist")
+def test_has_table_true2():
+    assert __has_table("version")
 
+
+def test_has_table_false():
+    assert not __has_table("does_not_exist", schema="sys")
+
+
+def test_has_table_false2():
+    assert not __has_table("does_not_exist")

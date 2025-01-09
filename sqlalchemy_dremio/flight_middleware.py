@@ -1,6 +1,6 @@
-from pyarrow.flight import ClientMiddleware
-from pyarrow.flight import ClientMiddlewareFactory
 from http.cookies import SimpleCookie
+
+from pyarrow._flight import ClientMiddleware, ClientMiddlewareFactory
 
 
 class CookieMiddlewareFactory(ClientMiddlewareFactory):
@@ -11,7 +11,8 @@ class CookieMiddlewareFactory(ClientMiddlewareFactory):
 
     def start_call(self, info):
         return CookieMiddleware(self)
-        
+
+
 class CookieMiddleware(ClientMiddleware):
     """
     A ClientMiddleware that receives and retransmits cookies.

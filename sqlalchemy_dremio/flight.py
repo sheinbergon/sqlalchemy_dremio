@@ -1,6 +1,4 @@
-import re
-
-from sqlalchemy import schema, types, pool
+from sqlalchemy import schema, types, pool, text
 from sqlalchemy.engine import default, reflection
 from sqlalchemy.sql import compiler
 
@@ -142,15 +140,15 @@ class DremioIdentifierPreparer(compiler.IdentifierPreparer):
             __init__(dialect, initial_quote='"', final_quote='"')
 
 
-class DremioExecutionContext_flight(DremioExecutionContext):
+class DremioExecutionContextFlight(DremioExecutionContext):
     pass
 
 
-class DremioDialect_flight(default.DefaultDialect):
-
+class DremioDialectFlight(default.DefaultDialect):
     name = _dialect_name
     driver = _dialect_name
     supports_sane_rowcount = False
+    supports_statement_cache = False
     supports_sane_multi_rowcount = False
     poolclass = pool.SingletonThreadPool
     statement_compiler = DremioCompiler
@@ -178,7 +176,7 @@ class DremioDialect_flight(default.DefaultDialect):
         def add_property(lc_query_dict, property_name, connectors):
             if property_name.lower() in lc_query_dict:
                 connectors.append('{0}={1}'.format(property_name, lc_query_dict[property_name.lower()]))
-        
+
         add_property(lc_query_dict, 'UseEncryption', connectors)
         add_property(lc_query_dict, 'DisableCertificateVerification', connectors)
         add_property(lc_query_dict, 'TrustedCerts', connectors)
@@ -214,7 +212,7 @@ class DremioDialect_flight(default.DefaultDialect):
         sql = "DESCRIBE \"{0}\"".format(table_name)
         if schema != None and schema != "":
             sql = "DESCRIBE \"{0}\".\"{1}\"".format(schema, table_name)
-        cursor = connection.execute(sql)
+        cursor = connection.execute(text(sql))
         result = []
         for col in cursor:
             cname = col[0]
@@ -235,15 +233,14 @@ class DremioDialect_flight(default.DefaultDialect):
         if schema is not None:
             sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.\"TABLES\" WHERE TABLE_SCHEMA = '" + schema + "'"
 
-        result = connection.execute(sql)
+        result = connection.execute(text(sql))
         table_names = [r[0] for r in result]
         return table_names
 
     def get_schema_names(self, connection, schema=None, **kw):
-        result = connection.execute("SHOW SCHEMAS")
+        result = connection.execute(text("SHOW SCHEMAS"))
         schema_names = [r[0] for r in result]
         return schema_names
-
 
     @reflection.cache
     def has_table(self, connection, table_name, schema=None, **kw):
@@ -251,10 +248,9 @@ class DremioDialect_flight(default.DefaultDialect):
         sql += " WHERE TABLE_NAME = '" + str(table_name) + "'"
         if schema is not None and schema != "":
             sql += " AND TABLE_SCHEMA = '" + str(schema) + "'"
-        result = connection.execute(sql)
-        countRows = [r[0] for r in result]
-        return countRows[0] > 0
+        result = connection.execute(text(sql))
+        count_rows = [r[0] for r in result]
+        return count_rows[0] > 0
 
     def get_view_names(self, connection, schema=None, **kwargs):
         return []
-        

@@ -2,10 +2,10 @@ import os
 from pathlib import Path
 
 import pytest
-from sqlalchemy import create_engine
 import sqlalchemy.dialects
+from sqlalchemy import create_engine, text
 
-sqlalchemy.dialects.registry.register("dremio", "sqlalchemy_dremio.flight", "DremioDialect_flight")
+sqlalchemy.dialects.registry.register("dremio", "sqlalchemy_dremio.flight", "DremioDialectFlight")
 
 
 def help():
@@ -29,9 +29,14 @@ def get_engine():
 @pytest.fixture(scope='session', autouse=True)
 def init_test_schema(request):
     test_sql = Path("scripts/sample.sql")
-    get_engine().execute(open(test_sql).read())
+    engine = get_engine()
+    with engine.connect() as conn, open(test_sql) as sql_file:
+        statement = text(sql_file.read())
+        conn.execute(statement)
 
     def fin():
-        get_engine().execute('DROP TABLE $scratch.sqlalchemy_tests')
+        engine = get_engine()
+        with engine.connect() as conn:
+            conn.execute(text('DROP TABLE $scratch.sqlalchemy_tests'))
 
     request.addfinalizer(fin)

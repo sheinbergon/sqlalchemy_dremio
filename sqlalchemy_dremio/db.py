@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 
 import logging
 
-from pyarrow import flight
+from pyarrow._flight import FlightClient, FlightCallOptions
 
 from sqlalchemy_dremio.exceptions import Error, NotSupportedError
 from sqlalchemy_dremio.flight_middleware import CookieMiddlewareFactory
@@ -48,7 +48,7 @@ class Connection(object):
     def __init__(self, connection_string):
 
         # Build a map from the connection string supplied using the SQLAlchemy URI
-        # and supplied properties. The format is generated from DremioDialect_flight.create_connect_args()
+        # and supplied properties. The format is generated from DremioDialectFlight.create_connect_args()
         # and is a semi-colon delimited string of key=value pairs. Note that the value itself can
         # contain equal signs.
         properties = {}
@@ -77,9 +77,9 @@ class Connection(object):
         # Enabling cookie middleware for stateful connectivity.
         client_cookie_middleware = CookieMiddlewareFactory()
 
-        client = flight.FlightClient('grpc+{0}://{1}:{2}'.format(protocol, properties['HOST'], properties['PORT']),
+        client = FlightClient('grpc+{0}://{1}:{2}'.format(protocol, properties['HOST'], properties['PORT']),
             middleware=[client_cookie_middleware], **connection_args)
-        
+
         # Authenticate either using basic username/password or using the Token parameter.
         headers = []
         if 'UID' in properties:
@@ -100,7 +100,7 @@ class Connection(object):
         add_header(properties, headers, 'routing_engine')
 
         self.flightclient = client
-        self.options = flight.FlightCallOptions(headers=headers)
+        self.options = FlightCallOptions(headers=headers)
 
         self.closed = False
         self.cursors = []

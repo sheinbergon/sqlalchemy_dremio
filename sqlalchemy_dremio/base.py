@@ -34,7 +34,7 @@ _type_map = {
     'smallint': types.SMALLINT,
     'CHARACTER VARYING': types.VARCHAR,
     'ANY': types.VARCHAR,
-    
+
     'ARRAY': types.ARRAY,
     'ROW': types.JSON,
     'BINARY VARYING': types.LargeBinary,
@@ -229,8 +229,8 @@ class DremioDialect(default.DefaultDialect):
         if schema is not None and schema != "":
             sql += " AND TABLE_SCHEMA = '" + str(schema) + "'"
         result = connection.execute(sql)
-        countRows = [r[0] for r in result]
-        return countRows[0] > 0
+        count_rows = [r[0] for r in result]
+        return count_rows[0] > 0
 
     def get_view_names(self, connection, schema=None, **kwargs):
         return []
